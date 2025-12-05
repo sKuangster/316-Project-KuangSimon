@@ -24,8 +24,8 @@ export default function WelcomeScreen() {
 
         <div className="flex justify-center gap-4">
           <button className="text-black">Continue As Guest</button>
-          <Link className="text-black" href="/signin">Login</Link>
-          <Link className="text-black" href="/create_account">Create Account</Link>
+          <Link className="text-black" href="/login">Login</Link>
+          <Link className="text-black" href="/register">Create Account</Link>
         </div>
 
       </div>
