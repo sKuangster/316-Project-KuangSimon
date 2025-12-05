@@ -7,7 +7,7 @@ const PlaylistSchema = new mongoose.Schema({
     },
     songs: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Song'  // Reference to Song model
+        ref: 'Song'
     }],
     ownerEmail: {
         type: String,
@@ -18,7 +18,7 @@ const PlaylistSchema = new mongoose.Schema({
         default: false
     },
     listeners: [{
-        type: String  // Array of user emails who have listened
+        type: String
     }],
     listens: {
         type: Number,

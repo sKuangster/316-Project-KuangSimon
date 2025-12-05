@@ -17,7 +17,6 @@ export const GlobalStoreActionType = {
     HIDE_MODAL: "HIDE_MODAL",
 };
 
-// Store API calls (matching HW4 pattern)
 const storeAPI = {
     getPlaylistPairs: async () => {
         const res = await fetch("/api/store/playlistpairs", { method: "GET", credentials: "include" });

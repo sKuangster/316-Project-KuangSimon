@@ -17,7 +17,6 @@ export async function POST(request) {
             );
         }
 
-        // Find user
         const user = await User.findOne({ email });
         if (!user) {
             return NextResponse.json(
@@ -26,7 +25,6 @@ export async function POST(request) {
             );
         }
 
-        // Check password
         const passwordCorrect = await bcrypt.compare(password, user.passwordHash);
         if (!passwordCorrect) {
             return NextResponse.json(
@@ -35,10 +33,8 @@ export async function POST(request) {
             );
         }
 
-        // Sign token
         const token = signToken(user._id);
 
-        // Create response with cookie
         const response = NextResponse.json({
             success: true,
             user: {
@@ -52,7 +48,7 @@ export async function POST(request) {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 // 7 days
+            maxAge: 7 * 24 * 60 * 60
         });
 
         return response;

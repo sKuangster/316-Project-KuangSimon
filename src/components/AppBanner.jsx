@@ -37,12 +37,7 @@ export default function AppBanner() {
                     {auth.loggedIn ? (
                         <span className="font-bold text-fuchsia-500">{auth.getUserInitials()}</span>
                     ) : (
-                        <Image
-                            src="/profile_icon.png"
-                            alt="Profile"
-                            width={24}
-                            height={24}
-                        />
+                        <div className='w-[24px] h-[24x]'>👤</div>
                     )}
                 </button>
 

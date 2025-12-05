@@ -11,8 +11,7 @@ export const AuthActionType = {
     LOGOUT_USER: "LOGOUT_USER",
     REGISTER_USER: "REGISTER_USER",
     REGISTER_USER_ERROR: "REGISTER_USER_ERROR",
-    LOGIN_USER_ERROR: "LOGIN_USER_ERROR",
-    SET_GUEST_MODE: "SET_GUEST_MODE"
+    LOGIN_USER_ERROR: "LOGIN_USER_ERROR"
 }
 
 const authAPI = {
@@ -81,7 +80,6 @@ export function AuthContextProvider({ children }) {
     const [auth, setAuth] = useState({
         user: null,
         loggedIn: false,
-        guest: false,
         errorMessage: null
     });
     const router = useRouter();
@@ -94,54 +92,17 @@ export function AuthContextProvider({ children }) {
         const { type, payload } = action;
         switch (type) {
             case AuthActionType.GET_LOGGED_IN:
-                return setAuth({ 
-                    user: payload.user, 
-                    loggedIn: payload.loggedIn, 
-                    guest: false,
-                    errorMessage: null 
-                });
+                return setAuth({ user: payload.user, loggedIn: payload.loggedIn, errorMessage: null });
             case AuthActionType.LOGIN_USER:
-                return setAuth({ 
-                    user: payload.user, 
-                    loggedIn: true, 
-                    guest: false,
-                    errorMessage: null 
-                });
+                return setAuth({ user: payload.user, loggedIn: true, errorMessage: null });
             case AuthActionType.LOGIN_USER_ERROR:
-                return setAuth({ 
-                    user: null, 
-                    loggedIn: false, 
-                    guest: false,
-                    errorMessage: payload.errorMessage 
-                });
+                return setAuth({ user: null, loggedIn: false, errorMessage: payload.errorMessage });
             case AuthActionType.LOGOUT_USER:
-                return setAuth({ 
-                    user: null, 
-                    loggedIn: false, 
-                    guest: false,
-                    errorMessage: null 
-                });
+                return setAuth({ user: null, loggedIn: false, errorMessage: null });
             case AuthActionType.REGISTER_USER:
-                return setAuth({ 
-                    user: payload.user, 
-                    loggedIn: true, 
-                    guest: false,
-                    errorMessage: null 
-                });
+                return setAuth({ user: payload.user, loggedIn: true, errorMessage: null });
             case AuthActionType.REGISTER_USER_ERROR:
-                return setAuth({ 
-                    user: null, 
-                    loggedIn: false, 
-                    guest: false,
-                    errorMessage: payload.errorMessage 
-                });
-            case AuthActionType.SET_GUEST_MODE:
-                return setAuth({
-                    user: null,
-                    loggedIn: false,
-                    guest: true,
-                    errorMessage: null
-                });
+                return setAuth({ user: null, loggedIn: false, errorMessage: payload.errorMessage });
             default:
                 return auth;
         }
@@ -209,14 +170,6 @@ export function AuthContextProvider({ children }) {
             authReducer({ type: AuthActionType.LOGOUT_USER, payload: null });
             router.push("/");
         }
-    }
-
-    auth.continueAsGuest = function() {
-        authReducer({
-            type: AuthActionType.SET_GUEST_MODE,
-            payload: null
-        });
-        router.push("/playlists");
     }
 
     auth.getUserInitials = function() {
