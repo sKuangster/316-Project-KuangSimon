@@ -3,34 +3,48 @@
 import AppBanner from "@/components/AppBanner";
 import Copyright from "@/components/Copyright";
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/auth";
 import { useRouter } from "next/navigation";
 
-export default function Register() {
+export default function EditAccount() {
+  const { auth } = useAuth();
   const router = useRouter();
 
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!auth.loggedIn) {
+      router.push("/login");
+    }
+  }, [auth.loggedIn, router]);
+
   const [userName, setUserName] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVerify, setPasswordVerify] = useState("");
   const [avatar, setAvatar] = useState("");
 
   // Field-level validation errors
   const [userNameError, setUserNameError] = useState("");
-  const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [passwordVerifyError, setPasswordVerifyError] = useState("");
   const [avatarError, setAvatarError] = useState("");
 
-  // General error
+  // General error/success
   const [generalError, setGeneralError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize with current user data
+  useEffect(() => {
+    if (auth.user) {
+      setUserName(auth.user.userName || "");
+      setAvatar(auth.user.avatar || "");
+    }
+  }, [auth.user]);
 
   // Validate userName
   useEffect(() => {
     if (userName.length === 0) {
-      setUserNameError("");
+      setUserNameError("User name is required");
     } else if (userName.trim().length === 0) {
       setUserNameError("User name cannot be empty or whitespace only");
     } else {
@@ -38,21 +52,7 @@ export default function Register() {
     }
   }, [userName]);
 
-  // Validate email
-  useEffect(() => {
-    if (email.length === 0) {
-      setEmailError("");
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        setEmailError("Please enter a valid email address");
-      } else {
-        setEmailError("");
-      }
-    }
-  }, [email]);
-
-  // Validate password
+  // Validate password (only if changing)
   useEffect(() => {
     if (password.length === 0) {
       setPasswordError("");
@@ -63,10 +63,12 @@ export default function Register() {
     }
   }, [password]);
 
-  // Validate password verify
+  // Validate password verify (only if changing password)
   useEffect(() => {
-    if (passwordVerify.length === 0) {
+    if (password.length === 0) {
       setPasswordVerifyError("");
+    } else if (passwordVerify.length === 0) {
+      setPasswordVerifyError("Please confirm your password");
     } else if (password !== passwordVerify) {
       setPasswordVerifyError("Passwords do not match");
     } else {
@@ -88,7 +90,6 @@ export default function Register() {
         // STRICT: Must be exactly 200x200
         if (img.width !== 200 || img.height !== 200) {
           setAvatarError(`Image must be exactly 200x200 pixels (yours is ${img.width}x${img.height})`);
-          setAvatar("");
           return;
         }
 
@@ -108,25 +109,40 @@ export default function Register() {
     reader.readAsDataURL(file);
   };
 
-  async function handleRegister(e) {
+  const handleCancel = () => {
+    router.back();
+  };
+
+  async function handleUpdate(e) {
     e.preventDefault();
     setIsSubmitting(true);
     setGeneralError("");
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
+      const updateData = {
+        userName: userName.trim(),
+        avatar: avatar
+      };
+
+      if (password.length > 0) {
+        updateData.password = password;
+        updateData.passwordVerify = passwordVerify;
+      }
+
+      const res = await fetch("/api/auth/edit-account", {
+        method: "PUT",
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName, email, password, passwordVerify, avatar })
+        body: JSON.stringify(updateData)
       });
 
       const data = await res.json();
 
       if (res.status === 200) {
-        router.push("/login");
+        await auth.getLoggedIn();
+        router.back();
       } else {
-        setGeneralError(data.errorMessage || "Registration failed");
+        setGeneralError(data.errorMessage || "Update failed");
       }
     } catch (error) {
       setGeneralError("An error occurred. Please try again.");
@@ -137,15 +153,16 @@ export default function Register() {
 
   const isFormValid = 
     userName.trim().length > 0 &&
-    email.length > 0 &&
-    password.length >= 8 &&
-    passwordVerify.length > 0 &&
     avatar.length > 0 &&
     !userNameError &&
-    !emailError &&
-    !passwordError &&
-    !passwordVerifyError &&
-    !avatarError;
+    !avatarError &&
+    (password.length === 0 || (password.length >= 8 && password === passwordVerify)) &&
+    (password.length === 0 || !passwordError) &&
+    (password.length === 0 || !passwordVerifyError);
+
+  if (!auth.loggedIn) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -162,10 +179,10 @@ export default function Register() {
         </div>
 
         <div className="text-4xl text-gray-600 mb-4">
-          Create Account
+          Edit Account
         </div>
 
-        <form onSubmit={handleRegister} className="flex flex-col items-center w-full">
+        <form onSubmit={handleUpdate} className="flex flex-col items-center w-full">
           {/* Avatar Display and Upload */}
           <div className="mb-4 flex flex-col items-center">
             <div className={`w-[100px] h-[100px] rounded-full border-4 overflow-hidden bg-white flex items-center justify-center ${
@@ -179,7 +196,7 @@ export default function Register() {
             </div>
             
             <label className="mt-3 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded cursor-pointer transition">
-              Select Avatar (200x200px)
+              Change Avatar (200x200px)
               <input
                 type="file"
                 accept="image/png, image/jpeg, image/jpg"
@@ -212,32 +229,28 @@ export default function Register() {
             )}
           </div>
 
-          {/* Email */}
+          {/* Email (Read-only per spec) */}
           <div className="relative w-[500px] m-3">
             <input
-              className={`p-3 rounded border w-full h-[50px] ${
-                emailError ? 'bg-red-100 border-red-500' : 'bg-purple-200 border-gray-300'
-              }`}
+              className="p-3 rounded border w-full h-[50px] bg-gray-200 border-gray-300 cursor-not-allowed"
               placeholder="Email"
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={auth.user?.email || ""}
+              disabled
+              readOnly
             />
-            {emailError && (
-              <div className="text-red-600 text-xs mt-1 absolute">
-                {emailError}
-              </div>
-            )}
+            <div className="text-gray-500 text-xs mt-1">
+              Email cannot be changed
+            </div>
           </div>
 
-          {/* Password */}
+          {/* Password (Optional) */}
           <div className="relative w-[500px] m-3">
             <input
               className={`p-3 rounded border w-full h-[50px] ${
                 passwordError ? 'bg-red-100 border-red-500' : 'bg-purple-200 border-gray-300'
               }`}
               type="password"
-              placeholder="Password (min 8 characters)"
+              placeholder="New Password (leave blank to keep current)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -248,35 +261,47 @@ export default function Register() {
             )}
           </div>
 
-          {/* Password Confirm */}
-          <div className="relative w-[500px] m-3">
-            <input
-              className={`p-3 rounded border w-full h-[50px] ${
-                passwordVerifyError ? 'bg-red-100 border-red-500' : 'bg-purple-200 border-gray-300'
-              }`}
-              type="password"
-              placeholder="Password Confirm"
-              value={passwordVerify}
-              onChange={(e) => setPasswordVerify(e.target.value)}
-            />
-            {passwordVerifyError && (
-              <div className="text-red-600 text-xs mt-1 absolute">
-                {passwordVerifyError}
-              </div>
-            )}
-          </div>
+          {/* Password Confirm (Only show if changing password) */}
+          {password.length > 0 && (
+            <div className="relative w-[500px] m-3">
+              <input
+                className={`p-3 rounded border w-full h-[50px] ${
+                  passwordVerifyError ? 'bg-red-100 border-red-500' : 'bg-purple-200 border-gray-300'
+                }`}
+                type="password"
+                placeholder="Confirm New Password"
+                value={passwordVerify}
+                onChange={(e) => setPasswordVerify(e.target.value)}
+              />
+              {passwordVerifyError && (
+                <div className="text-red-600 text-xs mt-1 absolute">
+                  {passwordVerifyError}
+                </div>
+              )}
+            </div>
+          )}
 
-          <button
-            type="submit"
-            disabled={!isFormValid || isSubmitting}
-            className={`rounded-lg w-[500px] h-[40px] m-8 text-white ${
-              isFormValid && !isSubmitting
-                ? 'bg-black hover:bg-gray-800' 
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
-          >
-            {isSubmitting ? 'Creating Account...' : 'Create Account'}
-          </button>
+          <div className="flex gap-4 m-8">
+            <button
+              type="submit"
+              disabled={!isFormValid || isSubmitting}
+              className={`rounded-lg w-[240px] h-[40px] text-white ${
+                isFormValid && !isSubmitting
+                  ? 'bg-black hover:bg-gray-800' 
+                  : 'bg-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {isSubmitting ? 'Updating...' : 'Complete'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-lg w-[240px] h-[40px] bg-gray-500 hover:bg-gray-600 text-white"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
 
         {generalError && (
@@ -284,10 +309,6 @@ export default function Register() {
             {generalError}
           </div>
         )}
-
-        <div className="text-red mt-4">
-          Already have an account? <Link href="/login" className="underline">Sign in</Link>
-        </div>
       </div>
 
       <div className="bg-orange-100 mt-auto">

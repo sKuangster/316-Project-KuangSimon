@@ -57,11 +57,11 @@ export default function AppBanner() {
                                     <div className="text-gray-600 text-xs">{auth.user?.email}</div>
                                 </div>
                                 <Link
-                                    href="/playlists"
+                                    href="/edit"
                                     onClick={handleMenuClose}
                                     className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                                 >
-                                    My Playlists
+                                    Edit Account
                                 </Link>
                                 <button 
                                     onClick={handleLogout} 
