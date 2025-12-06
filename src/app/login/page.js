@@ -2,7 +2,6 @@
 
 import AppBanner from "@/components/AppBanner";
 import Copyright from "@/components/Copyright";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/auth";
@@ -13,9 +12,12 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  async function signIn() {
+  async function handleLogin(e) {
+    e.preventDefault();
     await auth.loginUser(email, password);
   }
+
+  const isFormValid = email && password;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -23,7 +25,7 @@ export default function Login() {
 
       <div className="flex flex-col flex-grow items-center justify-center bg-orange-100">
         <div className="relative m-3 w-[120px] h-[120px]">
-          <Image
+          <img
             src="/lock.png"
             alt="lock"
             fill
@@ -35,36 +37,43 @@ export default function Login() {
           Sign In
         </div>
 
-        <input
-          className="p-3 rounded border bg-purple-200 w-[500px] h-[50px] m-5"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <form onSubmit={handleLogin} className="flex flex-col items-center w-full">
+          <input
+            className="p-3 rounded border bg-purple-200 w-[500px] h-[50px] m-5"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <input
-          className="p-3 rounded border bg-purple-200 w-[500px] h-[50px] m-5"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            className="p-3 rounded border bg-purple-200 w-[500px] h-[50px] m-5"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        <button
-          onClick={signIn}
-          className="rounded-lg bg-black w-[500px] h-[40px] m-8 text-white"
-        >
-          Sign in
-        </button>
+          <button
+            type="submit"
+            disabled={!isFormValid}
+            className={`rounded-lg w-[500px] h-[40px] m-8 text-white ${
+              isFormValid 
+                ? 'bg-black hover:bg-gray-800' 
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Sign in
+          </button>
+        </form>
 
         {auth.errorMessage && (
-          <div className="text-red-600 mt-2">
+          <div className="text-red-600 mt-2 max-w-[500px] text-center bg-red-50 p-3 rounded border border-red-300">
             {auth.errorMessage}
           </div>
         )}
 
         <div className="text-red mt-4">
-          Don't have an account? <Link href="/register">Sign up</Link>
+          Don't have an account? <Link href="/register" className="underline">Sign up</Link>
         </div>
       </div>
 

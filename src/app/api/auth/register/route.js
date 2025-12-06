@@ -8,32 +8,53 @@ export async function POST(request) {
     try {
         await connectDB();
         
-        const { firstName, lastName, email, password, passwordVerify } = await request.json();
+        const body = await request.json();
+        const { userName, email, password, passwordVerify, avatar } = body;
 
-        // Validation
-        if (!firstName || !lastName || !email || !password || !passwordVerify) {
+        if (!userName || !email || !password || !passwordVerify || !avatar) {
             return NextResponse.json(
-                { errorMessage: 'Please enter all required fields.' },
+                { errorMessage: 'Please enter all required fields and select an avatar.' },
+                { status: 400 }
+            );
+        }
+
+        if (userName.trim().length === 0) {
+            return NextResponse.json(
+                { errorMessage: 'User name cannot be empty or only whitespace.' },
+                { status: 400 }
+            );
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return NextResponse.json(
+                { errorMessage: 'Please enter a valid email address.' },
                 { status: 400 }
             );
         }
 
         if (password.length < 8) {
             return NextResponse.json(
-                { errorMessage: 'Please enter a password of at least 8 characters.' },
+                { errorMessage: 'Password must be at least 8 characters long.' },
                 { status: 400 }
             );
         }
 
         if (password !== passwordVerify) {
             return NextResponse.json(
-                { errorMessage: 'Please enter the same password twice.' },
+                { errorMessage: 'Passwords do not match.' },
                 { status: 400 }
             );
         }
 
-        // Check if user exists
-        const existingUser = await User.findOne({ email });
+        if (!avatar.startsWith('data:image/')) {
+            return NextResponse.json(
+                { errorMessage: 'Invalid avatar format. Please select a valid image.' },
+                { status: 400 }
+            );
+        }
+
+        const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
         if (existingUser) {
             return NextResponse.json(
                 { errorMessage: 'An account with this email address already exists.' },
@@ -41,30 +62,26 @@ export async function POST(request) {
             );
         }
 
-        // Hash password
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
-        // Create user
         const newUser = new User({
-            firstName,
-            lastName,
-            email,
-            passwordHash
+            userName: userName.trim(),
+            email: email.toLowerCase().trim(),
+            passwordHash,
+            avatar
         });
 
         const savedUser = await newUser.save();
 
-        // Sign token
         const token = signToken(savedUser._id);
 
-        // Create response with cookie
         const response = NextResponse.json({
             success: true,
             user: {
-                firstName: savedUser.firstName,
-                lastName: savedUser.lastName,
-                email: savedUser.email
+                userName: savedUser.userName,
+                email: savedUser.email,
+                avatar: savedUser.avatar
             }
         }, { status: 200 });
 
@@ -78,9 +95,25 @@ export async function POST(request) {
         return response;
 
     } catch (error) {
-        console.error('Register error:', error);
+        console.error('Registration error:', error);
+        
+        if (error.code === 11000) {
+            return NextResponse.json(
+                { errorMessage: 'An account with this email already exists.' },
+                { status: 400 }
+            );
+        }
+        
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(err => err.message);
+            return NextResponse.json(
+                { errorMessage: `Validation failed: ${messages.join(', ')}` },
+                { status: 400 }
+            );
+        }
+        
         return NextResponse.json(
-            { errorMessage: 'An error occurred during registration.' },
+            { errorMessage: 'An error occurred during registration. Please try again.' },
             { status: 500 }
         );
     }

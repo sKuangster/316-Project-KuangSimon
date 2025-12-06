@@ -59,13 +59,13 @@ const authAPI = {
         }
     },
     
-    registerUser: async (firstName, lastName, email, password, passwordVerify) => {
+    registerUser: async (userName, email, password, passwordVerify, avatar) => {
         try {
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 credentials: "include",
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ firstName, lastName, email, password, passwordVerify })
+                body: JSON.stringify({ userName, email, password, passwordVerify, avatar })
             });
             const text = await res.text();
             const data = text ? JSON.parse(text) : {};
@@ -118,15 +118,15 @@ export function AuthContextProvider({ children }) {
         }
     }
 
-    auth.registerUser = async function(firstName, lastName, email, password, passwordVerify) {
+    auth.registerUser = async function(userName, email, password, passwordVerify, avatar) {
         try {   
-            const response = await authAPI.registerUser(firstName, lastName, email, password, passwordVerify);   
+            const response = await authAPI.registerUser(userName, email, password, passwordVerify, avatar);   
             if (response.status === 200) {
                 authReducer({
                     type: AuthActionType.REGISTER_USER,
                     payload: { user: response.data.user }
                 });
-                router.push("/");
+                router.push("/playlists");
             } else {
                 authReducer({
                     type: AuthActionType.REGISTER_USER_ERROR,
@@ -149,7 +149,7 @@ export function AuthContextProvider({ children }) {
                     type: AuthActionType.LOGIN_USER,
                     payload: { user: response.data.user }
                 });
-                router.push("/");
+                router.push("/playlists");
             } else {
                 authReducer({
                     type: AuthActionType.LOGIN_USER_ERROR,
@@ -173,12 +173,18 @@ export function AuthContextProvider({ children }) {
     }
 
     auth.getUserInitials = function() {
-        let initials = "";
-        if (auth.user) {
-            initials += auth.user.firstName.charAt(0);
-            initials += auth.user.lastName.charAt(0);
+        if (auth.user && auth.user.userName) {
+            const name = auth.user.userName.trim();
+            if (name.length >= 2) {
+                return name.substring(0, 2).toUpperCase();
+            }
+            return (name.charAt(0) + name.charAt(0)).toUpperCase();
         }
-        return initials;
+        return "";
+    }
+
+    auth.getAvatar = function() {
+        return auth.user?.avatar || null;
     }
 
     return (

@@ -28,9 +28,9 @@ export async function GET(request) {
         return NextResponse.json({
             loggedIn: true,
             user: {
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email
+                userName: user.userName,
+                email: user.email,
+                avatar: user.avatar
             }
         }, { status: 200 });
 

@@ -6,6 +6,17 @@ import User from "../src/lib/models/user-model.js";
 import Song from "../src/lib/models/song-model.js";
 import Playlist from "../src/lib/models/playlist-model.js";
 
+function createTextAvatar(name) {
+  const letter = name.charAt(0).toUpperCase();
+  
+  const svg = `<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="200" height="200" fill="#${Math.floor(Math.random()*16777215).toString(16)}"/>
+    <text x="100" y="130" font-size="100" text-anchor="middle" fill="white" font-family="Arial">${letter}</text>
+  </svg>`;
+  
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+}
+
 export default async function fillCollections() {
   await connectDB();
 
@@ -37,11 +48,13 @@ export default async function fillCollections() {
 
   const userDocs = users.map(u => {
     const { firstName, lastName } = parseName(u.name);
+    const userName = u.name;
+    
     return {
-      firstName,
-      lastName,
+      userName,
       email: u.email,
-      passwordHash: hashedPassword
+      passwordHash: hashedPassword,
+      avatar: createTextAvatar(userName)
     };
   });
 
@@ -50,13 +63,17 @@ export default async function fillCollections() {
 
   const emailToUser = {};
   insertedUsers.forEach(u => emailToUser[u.email] = u);
+  
   console.log("\nSeeding songs + playlists...");
 
   let totalSongsInserted = 0;
 
   for (const pl of playlists) {
     const owner = emailToUser[pl.ownerEmail];
-    if (!owner) continue; // Skip if playlist owner does not exist
+    if (!owner) {
+      console.log(`Skipping playlist "${pl.name}" - owner ${pl.ownerEmail} not found`);
+      continue;
+    }
 
     const songIds = [];
 
